@@ -157,10 +157,14 @@ num_recommendations = st.sidebar.slider('Number of Recommendations',
                                       min_value=1, 
                                       max_value=10, 
                                       value=5)
-
-# School selection
+# Get all unique school names
 all_schools = sorted(df['School Name'].unique())
-selected_school = st.selectbox('Select a School:', all_schools)
+
+# Set a default school (if you want a specific default)
+default_school = 'Default School Name'  # Replace this with the name of the default school
+
+# School selection with the default school
+selected_school = st.selectbox('Select a School:', all_schools, index=all_schools.index(default_school) if default_school in all_schools else 0)
 
 # Add a button to trigger recommendations
 if st.button('Get Recommendations'):
@@ -178,7 +182,6 @@ if st.button('Get Recommendations'):
         
         results_df = pd.DataFrame(recommendations, columns=['School Name', 'Distance (km)'])
         results_df['Distance (km)'] = results_df['Distance (km)'].round(2)
-        
         
         results_df.index = results_df.index + 1
 
@@ -209,4 +212,3 @@ if st.button('Get Recommendations'):
         
         map_df = pd.DataFrame(map_data)
         st.map(map_df)
-
