@@ -137,7 +137,7 @@ def recommend_schools(input_school_name, df, num_recommendations=5, max_distance
             school['School Name'],
             school['distance'],
             school.get('School Website', 'N/A'),  # Add School Website
-            school.get('Phone Number', 'N/A')    # Add Phone Number (replacing School Number)
+            school.get('Phone Number', 'N/A')    # Add Phone Number
         ))
     
     return recommended_schools
@@ -190,7 +190,7 @@ if st.button('Get Recommendations'):
         results_df.index = results_df.index + 1
         st.dataframe(results_df)
         
-        # Display on a map (same as before)
+        # Display on a map (filtered by conditions)
         st.subheader('School Locations')
         map_data = []
         
