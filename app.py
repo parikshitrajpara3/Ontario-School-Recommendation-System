@@ -189,29 +189,3 @@ if st.button('Get Recommendations'):
         results_df['Distance (km)'] = results_df['Distance (km)'].round(2)
         results_df.index = results_df.index + 1
         st.dataframe(results_df)
-        
-        # Display on a map (filtered by conditions)
-        st.subheader('School Locations')
-        map_data = []
-        
-        # Add selected school
-        selected_school_data = df[df['School Name'] == selected_school]
-        map_data.append({
-            'lat': selected_school_data['Latitude'].iloc[0],
-            'lon': selected_school_data['Longitude'].iloc[0],
-            'name': selected_school,
-            'type': 'Selected School'
-        })
-        
-        # Add recommended schools (only those that appear in recommendations)
-        for school_name, _, _, _ in recommendations:
-            school_data = df[df['School Name'] == school_name]
-            map_data.append({
-                'lat': school_data['Latitude'].iloc[0],
-                'lon': school_data['Longitude'].iloc[0],
-                'name': school_name,
-                'type': 'Recommended School'
-            })
-        
-        map_df = pd.DataFrame(map_data)
-        st.map(map_df)
