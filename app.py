@@ -161,7 +161,7 @@ num_recommendations = st.sidebar.slider('Number of Recommendations',
 all_schools = sorted(df['School Name'].unique())
 
 # Set a default school (if you want a specific default)
-default_school = 'A B Lucas Secondary School'  # Replace this with the name of the default school
+default_school = 'A.Y. Jackson Secondary School'  # Replace this with the name of the default school
 
 # School selection with the default school
 selected_school = st.selectbox('Select a School:', all_schools, index=all_schools.index(default_school) if default_school in all_schools else 0)
