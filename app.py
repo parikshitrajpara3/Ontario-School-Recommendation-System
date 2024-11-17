@@ -81,7 +81,7 @@ def load_data():
     X_scaled = scaler.fit_transform(X)
     
     # Apply PCA
-    pca = PCA(n_components=6)  # Using 6 components as in your original code
+    pca = PCA(n_components=6)
     X_pca = pca.fit_transform(X_scaled)
     
     # Create PCA dataframe
@@ -91,15 +91,12 @@ def load_data():
     )
     
     # Combine with original dataframe
-    final_df = pd.concat([
-        df[['School Name', 'Latitude', 'Longitude', 'School Level']],
-        pca_df
-    ], axis=1)
+    final_df = pd.concat([df[['School Name', 'Latitude', 'Longitude', 'School Level', 'School Website', 'Phone Number']],
+                           pca_df], axis=1)
     
     return final_df.dropna()
 
-def recommend_schools(input_school_name, df, num_recommendations=5, max_distance=float('inf')):
-    # Your existing recommend_schools function (unchanged)
+def recommend_schools(input_school_name, df, num_recommendations=5, max_distance=10):
     input_school = df[df['School Name'] == input_school_name]
     
     if input_school.empty:
@@ -108,37 +105,46 @@ def recommend_schools(input_school_name, df, num_recommendations=5, max_distance
     input_school_level = input_school['School Level'].values[0]
     input_lat, input_lon = input_school[['Latitude', 'Longitude']].values[0]
     
-    pca_columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6']
-    input_features = pd.DataFrame(
-        input_school[pca_columns + ['Latitude', 'Longitude']].values,
-        columns=pca_columns + ['Latitude', 'Longitude']
-    )
-
-    filtered_df = df[df['School Level'] == input_school_level]
+    # Filter schools by level and calculate distances first
+    filtered_df = df[df['School Level'] == input_school_level].copy()
     
-    knn = NearestNeighbors(n_neighbors=num_recommendations + 1, metric='euclidean')
-    X_fit = filtered_df[pca_columns + ['Latitude', 'Longitude']]
-    knn.fit(X_fit)
-
+    # Calculate geographical distances for all schools
+    filtered_df['distance'] = filtered_df.apply(
+        lambda row: geodesic((input_lat, input_lon), (row['Latitude'], row['Longitude'])).kilometers,
+        axis=1
+    )
+    
+    # Filter by maximum distance first
+    distance_filtered_df = filtered_df[filtered_df['distance'] <= max_distance]
+    
+    if len(distance_filtered_df) <= 1:  # If no schools within distance (excluding input school)
+        return []
+    
+    # Get PCA columns for similarity comparison
+    pca_columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6']
+    input_features = input_school[pca_columns].values
+    
+    # Fit KNN on the distance-filtered schools
+    knn = NearestNeighbors(n_neighbors=min(num_recommendations + 1, len(distance_filtered_df)), metric='euclidean')
+    knn.fit(distance_filtered_df[pca_columns])
+    
     distances, indices = knn.kneighbors(input_features)
     
     recommended_schools = []
-    for dist, idx in zip(distances[0][1:], indices[0][1:]):
-        recommended_school = filtered_df.iloc[idx]
-        school_name = recommended_school['School Name']
-        school_lat, school_lon = recommended_school[['Latitude', 'Longitude']]
-        
-        geo_distance = geodesic((input_lat, input_lon), (school_lat, school_lon)).kilometers
-        
-        if geo_distance <= max_distance:
-            recommended_schools.append((school_name, geo_distance))
-
-    return recommended_schools[:num_recommendations]
+    for idx in indices[0][1:]:  # Skip the first one as it's the input school
+        school = distance_filtered_df.iloc[idx]
+        recommended_schools.append((
+            school['School Name'],
+            school['distance'],
+            school.get('School Website', 'N/A'),  # Add School Website
+            school.get('Phone Number', 'N/A')    # Add Phone Number (replacing School Number)
+        ))
+    
+    return recommended_schools
 
 # Load the data
 try:
     df = load_data()
-    
 except Exception as e:
     st.error(f"Error loading data: {str(e)}")
     st.stop()
@@ -146,25 +152,21 @@ except Exception as e:
 # Create sidebar for filters
 st.sidebar.header('Filters')
 
-# Distance filter
+# Distance filter (max 10 km)
 max_distance = st.sidebar.slider('Maximum Distance (km)', 
                                min_value=1, 
-                               max_value=100, 
-                               value=20)
+                               max_value=10, 
+                               value=5)
 
 # Number of recommendations filter
 num_recommendations = st.sidebar.slider('Number of Recommendations', 
                                       min_value=1, 
                                       max_value=10, 
                                       value=5)
-# Get all unique school names
+
+# School selection
 all_schools = sorted(df['School Name'].unique())
-
-# Set a default school (if you want a specific default)
-default_school = 'A.Y. Jackson Secondary School'  # Replace this with the name of the default school
-
-# School selection with the default school
-selected_school = st.selectbox('Select a School:', all_schools, index=all_schools.index(default_school) if default_school in all_schools else 0)
+selected_school = st.selectbox('Select a School:', all_schools)
 
 # Add a button to trigger recommendations
 if st.button('Get Recommendations'):
@@ -177,17 +179,18 @@ if st.button('Get Recommendations'):
     
     if isinstance(recommendations, str):
         st.error(recommendations)
+    elif len(recommendations) == 0:
+        st.warning(f"No similar schools found within {max_distance} km.")
     else:
-        st.success(f"Here are the top {len(recommendations)} recommended schools similar to {selected_school}:")
+        st.success(f"Found {len(recommendations)} recommended schools similar to {selected_school}:")
         
-        results_df = pd.DataFrame(recommendations, columns=['School Name', 'Distance (km)'])
+        # Include School Website and Phone Number in the results
+        results_df = pd.DataFrame(recommendations, columns=['School Name', 'Distance (km)', 'School Website', 'Phone Number'])
         results_df['Distance (km)'] = results_df['Distance (km)'].round(2)
-        
         results_df.index = results_df.index + 1
-
         st.dataframe(results_df)
         
-        # Display on a map
+        # Display on a map (same as before)
         st.subheader('School Locations')
         map_data = []
         
@@ -200,8 +203,8 @@ if st.button('Get Recommendations'):
             'type': 'Selected School'
         })
         
-        # Add recommended schools
-        for school_name, _ in recommendations:
+        # Add recommended schools (only those that appear in recommendations)
+        for school_name, _, _, _ in recommendations:
             school_data = df[df['School Name'] == school_name]
             map_data.append({
                 'lat': school_data['Latitude'].iloc[0],
