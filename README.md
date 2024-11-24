@@ -1,7 +1,3 @@
-Here's a sample README for your project:
-
----
-
 # School Recommendation System
 
 This project is an interactive machine learning-based school recommendation system designed to assist users in finding schools that best match their preferences based on academic performance, enrollment, and proximity. The system utilizes K-means clustering to group schools with similar characteristics and recommends schools accordingly.
