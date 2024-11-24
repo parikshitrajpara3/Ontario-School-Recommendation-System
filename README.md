@@ -20,6 +20,6 @@ This project is an interactive machine learning-based school recommendation syst
 
 ## How to Use
 
-1. Visit the deployed app using the link: [School Recommendation System]([euhwxbtechynjfxv5ljgqv.streamlit.app/](https://ontario-school-recommendation-system-euhwxbtechynjfxv5ljgqv.streamlit.app/))
-2. Input your preferences for academic performance, enrollment size, and distance.
-3. The app will provide you with a list of schools that match your criteria.
+1. Visit the deployed app using the link: [School Recommendation System][(https://ontario-school-recommendation-system-euhwxbtechynjfxv5ljgqv.streamlit.app/)]
+2. Input your current school
+3. Get recommendations for other school
